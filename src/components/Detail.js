@@ -1,7 +1,7 @@
 import React from 'react'
 
 const Detail = (props) => {
-    console.log(props.info );
+    
   return (
   
 <div className="relative z-10" aria-labelledby="modal-title" role="dialog" aria-modal="true">

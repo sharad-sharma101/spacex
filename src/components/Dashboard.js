@@ -1,21 +1,30 @@
 import React, { useEffect, useState } from 'react'
 import axios from "axios";
 import Detail from './Detail'
+import { useNavigate, useParams } from 'react-router-dom'
 
 const Dashboard = () => {
-
+let histery = useNavigate();
 const [OpenModal, setOpenModal] = useState(false)
 const [ModalData, setModalData] = useState([])
 const [data, setdata] = useState([])
 const [filler, setfiller] = useState([])
 const [time , settime] = useState([]);
-const [status, setstatus] = useState([])
+const params = useParams();
+const [status, setstatus] = useState(`${params ? params : "1" }`)
+const [wait, setwait] = useState(false)
+
   useEffect(() => {
     async function fetchData() {
+       setwait(true)
         try { 
           await axios.get("https://api.spacexdata.com/v3/launches")
           .then(res => res.data)
-          .then(ele => {setdata(ele) ;  setfiller(ele)})
+          .then(ele => {
+            setdata(ele) ;  
+            setfiller(ele)
+            setwait(false)
+          })
         } catch (error) {
           console.log(error);
         }}
@@ -35,17 +44,22 @@ const [status, setstatus] = useState([])
     setstatus(e.target.value)
   }
   useEffect(() => {
+    setwait(true)
     if(status === "3"){
         setfiller(
             data.filter(ele =>  ele.launch_success
             )) 
+         histery("/3");
     } else if(status === "4"){
         setfiller(
             data.filter(ele =>  !(ele.launch_success) 
-            ))   
+            ))  
+            histery("/4");    
     }else {
           setfiller(data)
+          histery("/");
     }
+    setwait(false)
   }, [status])
   
 
@@ -96,7 +110,16 @@ const [status, setstatus] = useState([])
             </tr>
         </thead>
         <tbody>
-
+        { wait 
+              ? (
+              <button type="button" className="bg-indigo-500" disabled>
+                <svg className="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24">
+                </svg>
+                Processing...
+              </button>)
+              :  
+          <></> 
+        }
        {
         filler.size === 0 
         ?
