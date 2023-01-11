@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import axios from "axios";
 import Detail from './Detail'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import './loader.css'
 
 const Dashboard = () => {
 let histery = useNavigate();
@@ -10,26 +11,34 @@ const [ModalData, setModalData] = useState([])
 const [data, setdata] = useState([])
 const [filler, setfiller] = useState([])
 const [time , settime] = useState([]);
-const params = useParams();
-const [status, setstatus] = useState(`${params ? params : "1" }`)
-const [wait, setwait] = useState(false)
+const [FilterParams , setFilterParams] = useSearchParams();
+const [status, setstatus] = useState('1')
+const [wait, setwait] = useState(true)
 
   useEffect(() => {
     async function fetchData() {
-       setwait(true)
         try { 
           await axios.get("https://api.spacexdata.com/v3/launches")
           .then(res => res.data)
           .then(ele => {
             setdata(ele) ;  
             setfiller(ele)
-            setwait(false)
           })
         } catch (error) {
           console.log(error);
         }}
     fetchData();
+    
 }, [] )
+  
+  useEffect(() => {
+    if(filler.length > 0){
+      setwait(false)
+    }else{
+      setwait(true)
+    }
+  }, [filler])
+  
 
   function hundleModal(id){
     setModalData(
@@ -43,25 +52,50 @@ const [wait, setwait] = useState(false)
   function hundle1(e){
     setstatus(e.target.value)
   }
+
+  
   useEffect(() => {
-    setwait(true)
     if(status === "3"){
         setfiller(
             data.filter(ele =>  ele.launch_success
             )) 
-         histery("/3");
+         histery("/success=1");
     } else if(status === "4"){
         setfiller(
             data.filter(ele =>  !(ele.launch_success) 
             ))  
-            histery("/4");    
+            histery("/success=0");    
     }else {
           setfiller(data)
           histery("/");
     }
-    setwait(false)
   }, [status])
   
+  useEffect(() => {
+    if(time === "7"){
+       setfiller(
+        filler.filter(ele => new Date(ele.launch_date_utc) - new Date() > -252329141266)
+       )    
+       histery("/past=7");
+    } 
+    else if(time === "5"){
+      setfiller(
+        filler.filter(ele => new Date(ele.launch_date_utc) - new Date() > -189170697557)
+       ) 
+       histery("/past=5");
+    }else if(time === "3"){
+      setfiller(
+        filler.filter(ele => new Date(ele.launch_date_utc) - new Date() > -126098549582)
+       ) 
+       histery("/past=5");
+    }else{
+      setfiller(
+        filler.filter(ele => new Date(ele.launch_date_utc) - new Date() < 0)
+       ) 
+    }
+  }, [time])
+  
+
 
   return (
     <div>
@@ -69,9 +103,9 @@ const [wait, setwait] = useState(false)
       <div className='flex justify-around mb-[1rem] ' >
       <select id="Timing" value={time}  onChange={hundle} className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-[15rem] p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
             <option value="all">All Past Launchs</option>
-            <option value="6">Past 6 Months</option>
-            <option value="3">Past 3 Months</option>
-            <option value="1">Past 1 Months</option>
+            <option value="7">Past 7 year</option>
+            <option value="5">Past 5 year</option>
+            <option value="3">Past 3 year</option>
        </select>
        <select id="status" value={status}  onChange={hundle1} className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-[15rem] p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
             <option value="1">All Launches</option>
@@ -110,16 +144,6 @@ const [wait, setwait] = useState(false)
             </tr>
         </thead>
         <tbody>
-        { wait 
-              ? (
-              <button type="button" className="bg-indigo-500" disabled>
-                <svg className="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24">
-                </svg>
-                Processing...
-              </button>)
-              :  
-          <></> 
-        }
        {
         filler.size === 0 
         ?
@@ -159,7 +183,12 @@ const [wait, setwait] = useState(false)
         </tbody>
     </table>
 </div>
-        
+        { wait ? (
+              <div className='z-10 h-full w-full top-0 left-0 absolute' > 
+              <div className='loader' ></div></div>
+              ) :
+              <div></div>
+       }
        </div>
 
   { OpenModal && <Detail info={ModalData} switch={() => setOpenModal(false) }/> }
