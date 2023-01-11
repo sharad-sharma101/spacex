@@ -1,35 +1,18 @@
 import React, { useEffect, useState } from 'react'
 import axios from "axios";
 import Detail from './Detail'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import {  useSearchParams } from 'react-router-dom'
 import './loader.css'
 
 const Dashboard = () => {
-let histery = useNavigate();
 const [OpenModal, setOpenModal] = useState(false)
 const [ModalData, setModalData] = useState([])
-const [data, setdata] = useState([])
 const [filler, setfiller] = useState([])
-const [time , settime] = useState([]);
 const [FilterParams , setFilterParams] = useSearchParams();
-const [status, setstatus] = useState('1')
+const [time , settime] = useState(FilterParams.get('launch_year') ? FilterParams.get('launch_year') : 'all' );
+const [status, setstatus] = useState(FilterParams.get('launch_success') ? FilterParams.get('launch_success') : 'all' )
 const [wait, setwait] = useState(true)
 
-  useEffect(() => {
-    async function fetchData() {
-        try { 
-          await axios.get("https://api.spacexdata.com/v3/launches")
-          .then(res => res.data)
-          .then(ele => {
-            setdata(ele) ;  
-            setfiller(ele)
-          })
-        } catch (error) {
-          console.log(error);
-        }}
-    fetchData();
-    
-}, [] )
   
   useEffect(() => {
     if(filler.length > 0){
@@ -53,47 +36,38 @@ const [wait, setwait] = useState(true)
     setstatus(e.target.value)
   }
 
-  
+
   useEffect(() => {
-    if(status === "3"){
-        setfiller(
-            data.filter(ele =>  ele.launch_success
-            )) 
-         histery("/success=1");
-    } else if(status === "4"){
-        setfiller(
-            data.filter(ele =>  !(ele.launch_success) 
-            ))  
-            histery("/success=0");    
-    }else {
-          setfiller(data)
-          histery("/");
-    }
-  }, [status])
-  
-  useEffect(() => {
-    if(time === "7"){
-       setfiller(
-        filler.filter(ele => new Date(ele.launch_date_utc) - new Date() > -252329141266)
-       )    
-       histery("/past=7");
-    } 
-    else if(time === "5"){
-      setfiller(
-        filler.filter(ele => new Date(ele.launch_date_utc) - new Date() > -189170697557)
-       ) 
-       histery("/past=5");
-    }else if(time === "3"){
-      setfiller(
-        filler.filter(ele => new Date(ele.launch_date_utc) - new Date() > -126098549582)
-       ) 
-       histery("/past=5");
+   
+    const first = status === "all" ? '' : `launch_success=${status}`
+    const second = time === "all" ? '' : `launch_year=${time}`
+    let query = "";
+    if(first && second){
+     query = `/?${first}&${second}`
+     setFilterParams({launch_success: status , launch_year: time})
+    }else if(first){
+      query = `/?${first}`
+      setFilterParams({launch_success: status})
+    }else if(second){
+      query = `/?${second}`
+      setFilterParams({launch_year: time})
     }else{
-      setfiller(
-        filler.filter(ele => new Date(ele.launch_date_utc) - new Date() < 0)
-       ) 
+      setFilterParams({})
     }
-  }, [time])
+    setfiller([]);
+    async function fetchData() {
+        try { 
+          await axios.get(`https://api.spacexdata.com/v3/launches${query}`)
+          .then(res => res.data)
+          .then(ele => { 
+            setfiller(ele)
+          })
+        } catch (error) {
+          console.log(error);
+        }}
+    fetchData();
+
+  }, [status , time])
   
 
 
@@ -103,14 +77,17 @@ const [wait, setwait] = useState(true)
       <div className='flex justify-around mb-[1rem] ' >
       <select id="Timing" value={time}  onChange={hundle} className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-[15rem] p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
             <option value="all">All Past Launchs</option>
-            <option value="7">Past 7 year</option>
-            <option value="5">Past 5 year</option>
-            <option value="3">Past 3 year</option>
+            <option value="2015">2015 year</option>
+            <option value="2016">2016 year</option>
+            <option value="2017">2017 year</option>
+            <option value="2018">2018 year</option>
+            <option value="2019">2019 year</option>
+            <option value="2020">2020 year</option>
        </select>
        <select id="status" value={status}  onChange={hundle1} className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-[15rem] p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
-            <option value="1">All Launches</option>
-            <option value="3">Successful Launches</option>
-            <option value="4">Failed Launches</option>
+            <option value="all">All Launches</option>
+            <option value="true">Successful Launches</option>
+            <option value="false">Failed Launches</option>
        </select>
        </div>
 
@@ -144,12 +121,18 @@ const [wait, setwait] = useState(true)
             </tr>
         </thead>
         <tbody>
+
+        
+
        {
         filler.size === 0 
-        ?
-        <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700">No data of above filter
-        <th  scope="row" className="px-6 py-4">516</th>
-        </tr>
+        ?(
+        <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+        <th  scope="row" className="px-6 py-4"></th>
+        <td className="px-6 py-4"></td>
+        <td className="px-6 py-4"></td>
+        <td className="px-6 py-4 text-xl">No data for above filter</td>
+        </tr>)
         :(
          [...filler].map((ele , index) => {
             return (
@@ -158,7 +141,7 @@ const [wait, setwait] = useState(true)
                         {index+1}
                     </th>
                     <td className="px-6 py-4">
-                      { Date(ele.launch_date_unix).toString().length >= 21 ? Date(ele.launch_date_unix).toString().substr(4,21) : "no" }  
+                      { ele.launch_date_utc.substr(0,10).replaceAll('-',' ') }  
                     </td>
                     <td className="px-6 py-4">
                        {ele.launch_site.site_name} 
